@@ -26,4 +26,5 @@ docker build -t taskproducer:latest producer
 
 kubectl apply -f deployments/taskconsumer.yaml
 kubectl apply -f deployments/taskproducer.yaml
+kubectl apply -f deployments/kedascaler.yaml
 ```
