@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 @Component
 class TaskProducer(val queueService: QueueService) {
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelayString = "\${producer.interval-ms}")
     fun produceTask() {
         val result = queueService.publishTask(Task.randomTask())
         return if (result != null) {
