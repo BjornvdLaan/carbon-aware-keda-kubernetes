@@ -14,6 +14,11 @@ class QueueService(
     private val amazonSQS: AmazonSQS,
     @Value("\${aws.base-url}\${aws.queue.url}") private val queueUrl: String
 ) {
+    @EventListener
+    fun createQueueJustInCase(event: ApplicationReadyEvent) {
+        amazonSQS.createQueue("task-queue")
+    }
+
     fun receiveTask(): Task? {
         val message = receiveMessage()
         return if (message != null) {

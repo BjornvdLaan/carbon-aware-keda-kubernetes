@@ -14,12 +14,12 @@ metadata:
   name: taskconsumer-triggerauth
 spec:
   secretTargetRef:
-    - parameter: awsAccessKeyID     # Required.
-      name: aws-secrets            # Required.
-      key: AWS_ACCESS_KEY_ID        # Required.
-    - parameter: awsSecretAccessKey # Required.
-      name: aws-secrets            # Required.
-      key: AWS_SECRET_ACCESS_KEY    # Required.
+    - parameter: awsAccessKeyID
+      name: aws-secrets
+      key: AWS_ACCESS_KEY_ID
+    - parameter: awsSecretAccessKey
+      name: aws-secrets
+      key: AWS_SECRET_ACCESS_KEY
 
 ---
 
@@ -34,7 +34,7 @@ spec:
   cooldownPeriod: 5
   idleReplicaCount: 0
   minReplicaCount: 1
-  maxReplicaCount: 100
+  maxReplicaCount: 5
   fallback:
     failureThreshold: 3
     replicas: 1
