@@ -6,6 +6,8 @@ import com.xebia.carbonaware.consumer.task.Task
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 
 
@@ -35,7 +37,9 @@ class QueueService(
         receiveMessageRequest.queueUrl = queueUrl
         receiveMessageRequest.waitTimeSeconds = 5
         receiveMessageRequest.maxNumberOfMessages = 1
-        return amazonSQS.receiveMessage(receiveMessageRequest).messages.firstOrNull()
+        return amazonSQS.receiveMessage(receiveMessageRequest).messages.firstOrNull()?.also {
+            message -> amazonSQS.deleteMessage(queueUrl, message.receiptHandle)
+        }
     }
 
     companion object {
