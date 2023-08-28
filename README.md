@@ -13,18 +13,11 @@ Our setup contains three components:
 ## Instructions
 
 ```bash
-helm repo add kedacore https://kedacore.github.io/charts
-helm install keda kedacore/keda --namespace keda --version 2.11.1 --create-namespace
+cd ../kepler-operator
+make cluster-up CLUSTER_PROVIDER='kind' CI_DEPLOY=true GRAFANA_ENABLE=true
+make deploy IMG=quay.io/sustainable_computing_io/kepler-operator:latest
 
-helm repo add localstack https://localstack.github.io/helm-charts
-helm install localstack localstack/localstack
+kubectl config set-context --current --namespace=monitoring
+kubectl apply -k config/samples/
 ```
-
-```bash
-docker build -t taskconsumer:latest consumer
-docker build -t taskproducer:latest producer
-
-kubectl apply -f deployments/taskconsumer.yaml
-kubectl apply -f deployments/taskproducer.yaml
-kubectl apply -f deployments/kedascaler.yaml
-```
+`
