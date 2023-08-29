@@ -1,7 +1,14 @@
 ## Preparation
 Set up the cluster:
 ```bash 
-kind create cluster --config deployment/kind-nodeport.yml
+kind create cluster --config deployment/kind-nodeport-config.yml
+```
+
+Metrics Server
+```bash
+helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+helm repo update
+helm upgrade --install --set args={--kubelet-insecure-tls} metrics-server metrics-server/metrics-server --namespace kube-system
 ```
 
 Set up monitoring:
@@ -25,7 +32,8 @@ Build and load Docker images:
 ```bash
 docker build -t taskconsumer:latest consumer
 docker build -t taskproducer:latest producer
-
+```
+```bash
 kind load docker-image taskproducer:latest
 kind load docker-image taskconsumer:latest
 ```
@@ -39,17 +47,22 @@ helm repo add localstack https://localstack.github.io/helm-charts
 helm install localstack localstack/localstack
 ```
 
-Create the queue manually:
+[Optional] Create the queue manually:
 ```bash
-kubectl port-forward svc/localstack 4566:4566
+kubectl rollout status deployment localstack -n default --timeout=90s
 aws sqs --endpoint-url=http://localhost:4566 create-queue --queue-name task-queue
 ```
-(Note that the producer and consumer create the queue on startup if it does not exist yet.)
+(Note that the producer and consumer create the queue on startup if it does not exist yet)
 
-## Demo steps
+## Demo: Showcase KEDA
 Add producer to fill the queue
 ```bash
 kubectl apply -f deployment/taskproducer.yaml
+```
+
+See number of messages in queue
+```bash
+awslocal sqs get-queue-attributes --queue-url http://localhost:4566/000000000000/task-queue --attribute-names All
 ```
 
 Add consumer to consume from queue with 1 replica
@@ -62,9 +75,9 @@ Add KEDA to make num of replicas depend on the queue
 kubectl apply -f deployment/kedascaler.yaml
 ```
 
-See number of messages in queue
+Remove consumer again to let queue fill up
 ```bash
-awslocal sqs get-queue-attributes --queue-url http://localhost:4566/000000000000/task-queue --attribute-names All
+kubectl delete deploy taskconsumer
 ```
 
 Remove producer again to see KEDA scale down
@@ -72,30 +85,48 @@ Remove producer again to see KEDA scale down
 kubectl delete deploy taskproducer
 ```
 
-## Demo: Metrics Server and External Metrics Server
+Scale up producer to fill up more quickly
 ```bash
-// Get metrics for cpu and memory
+kubectl scale --replicas=10 deployment/taskproducer
+```
+
+Scale down producer to fill up more slowly
+```bash
+kubectl scale --replicas=1 deployment/taskproducer
+```
+
+## Demo: Metrics Server and External Metrics Server
+
+### 'Regular' Metrics Server
+Get metrics for cpu and memory:
+```bash
 kubectl top pod taskconsumer-<POD ID>
 ```
 
+Get metrics as raw json data:
 ```bash
-// Get metrics as raw json data
-kubectl get --raw /apis/metrics.k8s.io/v1beta1/namespaces/default/pods/taskconsumer-<POD ID> | jq .
+kubectl get --raw "/apis/metrics.k8s.io/v1beta1/namespaces/default/pods/taskconsumer-<POD ID>" | jq .
 ```
 
-## KEDA Metrics Server
-
+### KEDA External Metrics Server
+Get name of the queue metric:
 ```bash
-// Get name of the queue metric
 kubectl get so taskconsumer-scaler -o jsonpath={.status.externalMetricNames}
 ```
 
+Get value of metric from external server:
 ```bash
-kubectl get --raw "/apis/external.metrics.k8s.io/v1beta1" | jq .
+kubectl get --raw "/apis/external.metrics.k8s.io/v1beta1/namespaces/default/s0-aws-sqs-task-queue?labelSelector=scaledobject.keda.sh/name=taskconsumer-scaler" | jq .
+```
+
+## Demo: CarbonAwareKEDAOperator
+Install CarbonAwareKEDAOperator controller:
+```bash
+kubectl apply -f "https://github.com/Azure/carbon-aware-keda-operator/releases/download/v0.2.0/carbonawarekedascaler-v0.2.0.yaml"
 ```
 
 ```bash
-// Get value of metric from external server
-kubectl get --raw "/apis/external.metrics.k8s.io/v1beta1/namespaces/default/s0-aws-sqs-task-queue?labelSelector=scaledobject.keda.sh%2Fname%3Dtaskconsumer-scaler" | jq .
+kubectl apply -f deployment/carbonawarescaler.yaml
 ```
+
 

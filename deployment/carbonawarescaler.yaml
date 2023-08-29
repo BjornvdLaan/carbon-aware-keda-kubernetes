@@ -1,0 +1,31 @@
+apiVersion: carbonaware.kubernetes.azure.com/v1alpha1
+kind: CarbonAwareKedaScaler
+metadata:
+  labels:
+    app.kubernetes.io/name: carbonawarekedascaler
+    app.kubernetes.io/instance: carbonawarekedascaler-sample
+    app.kubernetes.io/part-of: carbon-aware-keda-operator
+    app.kubernetes.io/created-by: carbon-aware-keda-operator
+  name: carbon-aware-taskconsumer-scaler
+spec:
+  kedaTarget: scaledobjects.keda.sh
+  kedaTargetRef:
+    name: taskconsumer-scaler
+    namespace: default
+  carbonIntensityForecastDataSource:       # carbon intensity forecast data source
+    mockCarbonForecast: true               # [OPTIONAL] use mock carbon forecast data
+    localConfigMap:                        # [OPTIONAL] use configmap for carbon forecast data
+      name: carbon-intensity
+      namespace: kube-system
+      key: data
+  maxReplicasByCarbonIntensity:            # array of carbon intensity values in ascending order
+    - carbonIntensityThreshold: 543
+      maxReplicas: 4
+    - carbonIntensityThreshold: 561
+      maxReplicas: 3
+    - carbonIntensityThreshold: 579
+      maxReplicas: 2
+  ecoModeOff:
+    maxReplicas: 5
+    recurringSchedule:
+      - "* 1-2 * * 1-5"
